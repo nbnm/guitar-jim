@@ -96,7 +96,7 @@ struct RecordingsView: View {
                 Text("Compare the same bars at the same tempo. Local chord estimates are beta; timing is uncalibrated unless a measured offset was saved.").font(Theme.body(12)).foregroundStyle(Theme.muted)
                 ForEach(Array(session.attempts.enumerated()), id: \.element.id) { i, attempt in
                     Button {
-                        let duration = Double((attempt.endBar - attempt.startBar) * 4) * 60 / attempt.bpm
+                        let duration = attempt.replayDuration
                         let end = min(session.duration, attempt.startInRecording + duration)
                         if end > attempt.startInRecording {
                             Task {

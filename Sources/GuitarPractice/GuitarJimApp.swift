@@ -44,7 +44,7 @@ struct GuitarJimApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var model: AppModel?
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let model, model.isRecording else { return .terminateNow }
+        guard let model, model.hasPendingRecording else { return .terminateNow }
         Task { await model.stopMic(); sender.reply(toApplicationShouldTerminate: true) }
         return .terminateLater
     }

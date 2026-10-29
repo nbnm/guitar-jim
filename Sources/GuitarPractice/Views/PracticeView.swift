@@ -117,8 +117,8 @@ struct PracticeView: View {
             Button { showSetup.toggle() } label: { Image(systemName: "slider.horizontal.3") }.help("Microphone and timing offset")
                 .popover(isPresented: $showSetup) { AudioSetupView(model: model).padding(24).frame(width: 410).background(Theme.paper) }
             if !model.isRecording {
-                Button { Task { await model.enableMic() } } label: { Label(model.isStartingMic ? "Opening…" : "Enable mic + record", systemImage: "mic.fill") }
-                    .disabled(model.isStartingMic || model.selectedDeviceID == 0).font(Theme.strong(12))
+                Button { Task { await model.enableMic() } } label: { Label(model.isFinalizingRecording ? "Saving…" : model.isStartingMic ? "Opening…" : "Enable mic + record", systemImage: "mic.fill") }
+                    .disabled(model.isStartingMic || model.isFinalizingRecording || model.selectedDeviceID == 0).font(Theme.strong(12))
             }
         }.padding(.top, 3)
     }

@@ -127,8 +127,12 @@ private struct BarEditor: View {
                             Picker("Chord", selection: $bar.chords[index].shape) {
                                 ForEach(Array(Set(SongArrangement.supportedChords + bar.chords.map(\.shape))).sorted(), id: \.self) { Text($0).tag($0) }
                             }.frame(width: 140)
-                            Picker("At beat", selection: $bar.chords[index].beat) {
-                                ForEach(0..<8) { beat in Text(beatLabel(beat)).tag(Double(beat) / 2) }
+                            Picker("At beat", selection: Binding(get: { bar.chords[index].beat }, set: { _ = bar.moveChord(at: index, to: $0) })) {
+                                ForEach(0..<8) { beat in
+                                    if bar.canMoveChord(at: index, to: Double(beat) / 2) {
+                                        Text(beatLabel(beat)).tag(Double(beat) / 2)
+                                    }
+                                }
                             }.frame(width: 140).disabled(index == 0)
                             if index > 0 { Button { bar.chords.remove(at: index) } label: { Image(systemName: "minus.circle") }.buttonStyle(.plain).accessibilityLabel("Remove chord change") }
                         }

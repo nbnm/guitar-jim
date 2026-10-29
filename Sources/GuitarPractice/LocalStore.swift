@@ -6,6 +6,7 @@ final class LocalStore: ObservableObject {
     @Published var songs: [SongArrangement] = []
     @Published var sessions: [CaptureSession] = []
     @Published var error: String?
+    @Published private(set) var storageBytes: Int64 = 0
     let root: URL
     let encoder: JSONEncoder = {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; return encoder
@@ -28,7 +29,12 @@ final class LocalStore: ObservableObject {
                         var updated = songs[existing]; updated.difficulty = builtIn.difficulty
                         try saveSong(updated)
                     }
-                } else if !songs.contains(where: { $0.id == builtIn.id }) { try saveSong(builtIn) }
+                } else if !songs.contains(where: { $0.id == builtIn.id }),
+                          !FileManager.default.fileExists(atPath: self.root.appendingPathComponent("Arrangements/\(builtIn.id).json").path) {
+                    // An unreadable saved chart may still be repairable. Never
+                    // replace its existing file with the factory version.
+                    try saveSong(builtIn)
+                }
             }
             songs.sort {
                 let left = $0.difficulty?.level ?? 99, right = $1.difficulty?.level ?? 99
@@ -65,18 +71,29 @@ final class LocalStore: ObservableObject {
                 } catch { self.error = "A recording manifest could not be read. The audio is preserved in \(directory.lastPathComponent)." }
             }
             sessions = loaded.sorted { $0.startedAt > $1.startedAt }
+            refreshStorageUsage()
         } catch { self.error = "Could not list recordings: \(error.localizedDescription)" }
     }
     func updateSession(_ session: CaptureSession) throws {
         try encoder.encode(session).write(to: sessionDirectory(session.id).appendingPathComponent("session.json"), options: .atomic)
         if let i = sessions.firstIndex(where: { $0.id == session.id }) { sessions[i] = session }
+        refreshStorageUsage()
     }
     func deleteSession(_ session: CaptureSession) throws {
         try FileManager.default.removeItem(at: sessionDirectory(session.id))
         sessions.removeAll { $0.id == session.id }
+        refreshStorageUsage()
     }
     var storageDescription: String {
-        let bytes = sessions.flatMap(\.segments).reduce(0.0) { $0 + Double($1.sampleCount) * 4 }
-        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+        ByteCountFormatter.string(fromByteCount: storageBytes, countStyle: .file)
+    }
+    private func refreshStorageUsage() {
+        storageBytes = sessions.reduce(Int64(0)) { sum, session in
+            sum + session.segments.reduce(Int64(0)) { total, segment in
+                let path = sessionDirectory(session.id).appendingPathComponent(segment.filename).path
+                let attributes = try? FileManager.default.attributesOfItem(atPath: path)
+                return total + ((attributes?[.size] as? NSNumber)?.int64Value ?? 0)
+            }
+        }
     }
 }

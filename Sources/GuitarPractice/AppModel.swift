@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
     @Published var song: SongArrangement
     @Published var transport: Transport = .stopped
     @Published var isRecording = false
+    @Published private(set) var isFinalizingRecording = false
     @Published var isStartingMic = false
     @Published var recordingSeconds: Double = 0
     @Published var level: Float = 0
@@ -70,11 +71,13 @@ final class AppModel: ObservableObject {
     private var lastHealthCheck: Double = 0
     private var healthStart: Double = 0
     private var lastAudioHost: Double = 0
-    private var stoppingMic = false
+    private let recordingFinalizer = RecordingFinalizer()
+    private var chordBuffer = ChordFeedbackBuffer()
     private var lastFeedbackID: String?
     var clickVolume: Float { metronomeEnabled && metronomeVolume.isFinite ? Float(min(1, max(0, metronomeVolume))) : 0 }
     var metronomeAudible: Bool { clickVolume > 0.001 }
     var outputLatencyMS: Int { Int(clickTrack.outputLatency * 1000) }
+    var hasPendingRecording: Bool { isRecording || recordingFinalizer.isRunning }
 
     init() {
         let store = LocalStore(); self.store = store
@@ -152,7 +155,7 @@ final class AppModel: ObservableObject {
         pause(); transport = .stopped; self.song = song; pendingBPM = song.practiceBPM; activeBPM = song.practiceBPM
         startBar = 0; currentBar = 0; endBar = min(song.sections.first?.bars.count ?? 4, song.bars.count); beat = 0
         summary = .init(results: [], expectedDuringUsableAudio: 0); attemptsCompleted = 0; page = .practice
-        chordFeedback = []; harmonicEstimate = nil; timingLabel = "Waiting for a strum"
+        chordFeedback = []; chordBuffer = ChordFeedbackBuffer(); harmonicEstimate = nil; timingLabel = "Waiting for a strum"
     }
     func selectPassage(_ range: Range<Int>) {
         guard transport != .playing && transport != .counting else { return }
@@ -166,7 +169,7 @@ final class AppModel: ObservableObject {
         currentBar = startBar; beat = Double(startBar) * 4
         expected = RhythmMatcher.expectedAttacks(song: song, bars: startBar..<endBar, bpm: activeBPM)
         detected = []; usable = []; lastUsableObservation = nil
-        chordFeedback = []; lastFeedbackID = nil; timingLabel = "Waiting for a strum"
+        chordFeedback = []; chordBuffer = ChordFeedbackBuffer(); lastFeedbackID = nil; timingLabel = "Waiting for a strum"
         summary = .init(results: [], expectedDuringUsableAudio: 0)
         let schedule = MetronomeSchedule(bpm: activeBPM, practiceBeats: (endBar - startBar) * 4)
         do { countInHost = try clickTrack.start(schedule: schedule, volume: clickVolume) }
@@ -192,7 +195,7 @@ final class AppModel: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
     func enableMic() async {
-        guard !isRecording, !isStartingMic, !stoppingMic else { return }
+        guard !isRecording, !isStartingMic, !recordingFinalizer.isRunning else { return }
         isStartingMic = true; defer { isStartingMic = false }
         pause(); replay.stop()
         let permitted = await AVCaptureDevice.requestAccess(for: .audio)
@@ -214,14 +217,17 @@ final class AppModel: ObservableObject {
         } catch { self.error = error.localizedDescription; store.reloadSessions() }
     }
     func stopMic(reason: String? = nil) async {
-        guard !stoppingMic else { return }
-        stoppingMic = true; defer { stoppingMic = false }
         pause()
+        if recordingFinalizer.isRunning { await recordingFinalizer.wait(); return }
         guard let recorder else { return }
-        self.recorder = nil; isRecording = false; level = 0
-        let session = await recorder.stop(reason: reason)
-        store.reloadSessions()
-        if let fault = reason ?? session.fault { error = fault; calibrationConfirmed = false }
+        self.recorder = nil; isRecording = false; level = 0; isFinalizingRecording = true
+        let task = recordingFinalizer.begin { [self] in
+            let session = await recorder.stop(reason: reason)
+            store.reloadSessions()
+            if let fault = reason ?? session.fault { error = fault; calibrationConfirmed = false }
+            isFinalizingRecording = false
+        }
+        await task.value
     }
     func loadReplay(_ session: CaptureSession) async {
         await stopMic()
@@ -260,16 +266,21 @@ final class AppModel: ObservableObject {
                 let relativeTime = strum.onsetHostTime - startHost - offset
                 guard relativeTime >= -0.18, relativeTime < duration,
                       let attack = detected.first(where: { abs($0.time - relativeTime) < 0.002 }) else { continue }
-                let settled = RhythmMatcher.evaluate(expected: expected, detected: detected, usable: usable, through: AudioClock.now - startHost)
-                chordFeedback.append(.forAttack(attack, estimate: strum.estimate, expected: expected, rhythm: settled, capo: song.capo))
+                chordBuffer.record(strum.estimate, for: attack)
             }
         } else { lastUsableObservation = nil; lastHeard = "Unclear audio · clipping" }
     }
     private func finishAttempt(through time: Double) {
         guard isRecording else { return }
         summary = RhythmMatcher.evaluate(expected: expected, detected: detected, usable: usable, through: time)
-        recorder?.addAttempt(.init(startInRecording: attemptRecordingStart, startBar: startBar, endBar: endBar, bpm: activeBPM, expected: expected, detected: detected, summary: summary, chordFeedback: chordFeedback))
+        settleChordFeedback()
+        let duration = min(max(0, time), Double((endBar - startBar) * 4) * 60 / activeBPM)
+        recorder?.addAttempt(.init(startInRecording: attemptRecordingStart, startBar: startBar, endBar: endBar, bpm: activeBPM, expected: expected, detected: detected, summary: summary, chordFeedback: chordFeedback, recordedDuration: duration))
         attemptsCompleted += 1
+    }
+    private func settleChordFeedback() {
+        chordBuffer.settle(expected: expected, detected: detected, rhythm: summary, capo: song.capo)
+        chordFeedback = chordBuffer.feedback
     }
     private func tick() {
         replay.tick()
@@ -302,6 +313,7 @@ final class AppModel: ObservableObject {
             currentBar = min(endBar - 1, max(startBar, Int(beat / 4)))
             if isRecording {
                 summary = RhythmMatcher.evaluate(expected: expected, detected: detected, usable: usable, through: elapsed)
+                settleChordFeedback()
                 if let latest = summary.results.last, latest.id != lastFeedbackID {
                     lastFeedbackID = latest.id
                     timingLabel = latest.verdict.rawValue + (latest.offset.map { String(format: " · %+.0f ms", $0 * 1000) } ?? "")

@@ -71,7 +71,7 @@ struct RootView: View {
         HStack(spacing: 12) {
             Image(systemName: model.isRecording ? "record.circle.fill" : "mic.slash")
                 .foregroundStyle(model.isRecording ? Theme.accent : Theme.muted)
-            Text(model.isRecording ? (model.transport == .paused ? "Practice paused · Recording" : "Recording on your Mac") : "Microphone off")
+            Text(model.isFinalizingRecording ? "Saving recording…" : model.isRecording ? (model.transport == .paused ? "Practice paused · Recording" : "Recording on your Mac") : "Microphone off")
                 .font(Theme.strong(12))
             if model.isRecording {
                 Text(formatTime(model.recordingSeconds)).monospacedDigit().font(Theme.body(12))

@@ -1,6 +1,6 @@
 # Implementation status
 
-29 October 2026. Version 0.1.5. Native macOS prototype with an arcade practice surface, local audio analysis and recording. The PRD's release accuracy and latency targets have not been established.
+29 October 2026. Version 0.1.6. Native macOS prototype with an arcade practice surface, local audio analysis and recording. The PRD's release accuracy and latency targets have not been established.
 
 ## Current experience
 
@@ -27,6 +27,8 @@ Version 0.1.4 added the first ten [popular-song studies](SONG_CATALOG.md): two J
 Version 0.1.5 adds Photograph, Shape of You and Bad Habits by Ed Sheeran, plus Radioactive, Demons and Thunder by Imagine Dragons. The starter library now has 22 songs. These six studies use supported open shapes with no capo and separate practice tempos. Their linked source notes identify transposition, simplified voicings, omitted sections and authored strumming. Existing charts, including the user's reviewed no-capo U2 version, remain unchanged during seeding.
 
 Native checks on 0.1.5 confirmed all six additions in the 22-song library, exactly three results for each artist search, and Radioactive opening ready at 90 BPM with no capo, eighth-note pickups and the chord table visible. The app was left stopped on that study, with looping off. Screenshots are saved as `ed-sheeran-library.jpg`, `imagine-dragons-library.jpg` and `radioactive-practice.jpg` in `docs/assets/`.
+
+Version 0.1.6 addresses the pre-publication review findings. Stop, replay and quit wait for the same recording finalization; unreadable saved charts survive catalog seeding; early-strum chord estimates wait for their timing assignment; partial attempts replay only their recorded duration; storage usage reads actual audio file sizes; and moving a chord change keeps beats ordered and unique. See [review notes](REVIEW.md) for the checks and remaining limits.
 
 The practice screen has a persistent eight-subdivision strumming strip alongside the lyrics/chord chart. It shows down/up/rest, identifies matching presets or a custom pattern, and highlights the current subdivision. The optional table below the stage shows chord-change anchors and strums for every bar, highlights the same subdivision, and follows the current bar. Its visibility preference persists. The arrangement editor offers eight presets globally or per bar, plus manual slot cycling. Presets preserve harmony, lyrics and event identity; Save commits draft edits and Cancel discards them. Reduced motion retains the positional beat indicator without adding pulse/scroll animations. On shorter windows, the practice content scrolls to preserve controls.
 
@@ -87,7 +89,7 @@ Model access remains deferred until the endpoint, token, model identifier and pr
 
 ## Verification
 
-- `./Scripts/test.sh`: **40 tests passed** in seven suites on Apple Silicon with Swift 6.3.3; parameterized tests additionally exercise eight individual chord shapes and four explicit confusion cases. The app bundle builds and passes ad hoc signature verification.
+- `./Scripts/test.sh`: **46 tests passed** in eight suites on Apple Silicon with Swift 6.3.3; parameterized tests additionally exercise eight individual chord shapes and four explicit confusion cases. The app bundle builds and passes ad hoc signature verification.
 - Automated suite checks readiness, import limits and untrusted numeric fields, capo transposition, five distinct difficulty patterns, U2's chord-only review state, one-to-one attack assignment, rhythm verdicts, fast-tempo caps and zero denominators.
 - Audio fixtures cover all eight supported chord shapes; explicit C/Am and E/Em confusions; concert-pitch comparison; silence, clipping, broadband noise, single notes and incomplete chords; grouped strum timing; early chord-change assignment; and exclusion of extra strums from chord matches.
 - Storage/audio integration checks immutable snapshots, recovery, permission gates, storage failure preservation, full/wrapped capture buffers and sample-exact concatenation of finalized test chunks into WAV.
@@ -95,5 +97,6 @@ Model access remains deferred until the endpoint, token, model identifier and pr
 - Live input was nonzero, the level display advanced, the mic remained active while practice was paused, and stopping saved and disabled capture. The user's live guitar sample was unlabeled because its chord order was not remembered. Its mixed estimates are therefore **not an accuracy benchmark**, and recognition thresholds were not tuned against assumed labels.
 - Native UI checks cover count-in, keyboard pause, song selection, multiple lyric lines, arrangement review and microphone state. Version 0.1.3 checks the countdown animation, sound preview, mute/unmute and volume controls; the user subsequently confirmed hearing the clicks. Version 0.1.4 checks the 16-song catalog, Coldplay artist search, global/per-bar presets, custom upstroke editing, cancel behavior and table show/hide. During live metronome playback on Viva la Vida, the strip and table both highlighted bar 5, beat 2 (a rest), with the table following the current bar. The bounded eight-bar take ended automatically. These checks used no microphone capture and do not establish real-guitar recognition accuracy. Visual previews are saved under `docs/assets/`.
 - Automated coverage checks missing-event rests, subdivision boundaries, mid-bar chord labels, preset timing targets, edits spanning a section boundary, preservation of lyrics/chords and the no-capo U2 chart, 16 distinct source-linked studies, exactly three each by Ed Sheeran and Imagine Dragons, serialization and duplicate-free catalog reload with 22 songs.
+- Review regressions cover shared stop/quit finalization, unreadable built-in chart preservation, delayed early-strum chord feedback, partial-attempt replay and legacy decoding, actual stereo recording file sizes, and ordered, collision-free chord changes.
 
 Remaining release work: consented annotated real-guitar evaluation, confidence calibration and interference testing; automatic route calibration/tuner; measured end-to-end feedback latency and long-session drift; forced-crash/device-loss/disk-full tests; gapless replay and M4A export; and permitted content-provider integration.

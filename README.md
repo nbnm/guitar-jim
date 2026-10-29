@@ -72,7 +72,7 @@ The adapter sends only the entered request text and a fixed draft schema. It doe
 codesign --verify --deep --strict "build/Guitar Jim.app"
 ```
 
-The test wrapper handles the Swift Testing framework search path used by standalone Command Line Tools. The [macOS workflow](.github/workflows/ci.yml) runs the suite, builds the bundle and verifies its signature on pushes to `main` and pull requests. It does not publish a release.
+The test wrapper handles the Swift Testing framework search path used by standalone Command Line Tools. The local suite currently passes 46 tests across eight suites. The [macOS workflow](.github/workflows/ci.yml) runs the suite, builds the bundle and verifies its signature on pushes to `main` and pull requests. It does not publish a release. See the [pre-publication review notes](docs/REVIEW.md) for the findings and fixes.
 
 See [implementation status and remaining work](docs/IMPLEMENTATION.md) for requirement coverage, architecture, limitations and the manual audio validation plan. The PRD's numerical release targets have not been established. Synthetic chord fixtures exercise the algorithm; they do not establish real-guitar accuracy.
 

@@ -37,6 +37,18 @@ public struct PracticeBar: Codable, Equatable, Identifiable, Sendable {
     public init(id: UUID = UUID(), chords: [ChordEvent], strums: [StrumEvent], lyrics: [LyricLine] = []) {
         self.id = id; self.chords = chords; self.strums = strums; self.lyrics = lyrics
     }
+    public func canMoveChord(at index: Int, to beat: Double) -> Bool {
+        guard chords.indices.contains(index), beat.isFinite, beat >= 0, beat < 4,
+              (beat * 2).rounded() == beat * 2, index != 0 || beat == 0 else { return false }
+        return !chords.enumerated().contains { $0.offset != index && $0.element.beat == beat }
+    }
+    @discardableResult
+    public mutating func moveChord(at index: Int, to beat: Double) -> Bool {
+        guard canMoveChord(at: index, to: beat) else { return false }
+        chords[index].beat = beat
+        chords.sort { $0.beat < $1.beat }
+        return true
+    }
 }
 
 public struct PracticeSection: Codable, Equatable, Identifiable, Sendable {

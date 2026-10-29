@@ -153,3 +153,25 @@ public struct ChordFeedback: Codable, Identifiable, Sendable {
         return feedback
     }
 }
+
+/// Harmonic windows can finish before an early attack's timing window closes.
+/// Keep estimates pending until the matcher publishes an assignment or Extra.
+public struct ChordFeedbackBuffer: Sendable {
+    private var pending: [UUID: HarmonicEstimate] = [:]
+    public private(set) var feedback: [ChordFeedback] = []
+    public init() {}
+    public mutating func record(_ estimate: HarmonicEstimate, for attack: DetectedAttack) {
+        guard !feedback.contains(where: { $0.detectedID == attack.id }) else { return }
+        pending[attack.id] = estimate
+    }
+    public mutating func settle(expected: [ExpectedAttack], detected: [DetectedAttack], rhythm: RhythmSummary, capo: Int) {
+        let completed = Set(rhythm.results.compactMap(\.detectedID))
+        var changed = false
+        for attack in detected where completed.contains(attack.id) {
+            guard let estimate = pending.removeValue(forKey: attack.id) else { continue }
+            feedback.append(.forAttack(attack, estimate: estimate, expected: expected, rhythm: rhythm, capo: capo))
+            changed = true
+        }
+        if changed { feedback.sort { $0.time < $1.time } }
+    }
+}

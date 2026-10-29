@@ -4,8 +4,8 @@
     <key>CFBundleName</key><string>Guitar Jim</string>
     <key>CFBundleDisplayName</key><string>Guitar Jim</string>
     <key>CFBundleIdentifier</key><string>com.guitarjim.practice</string>
-    <key>CFBundleVersion</key><string>6</string>
-    <key>CFBundleShortVersionString</key><string>0.1.5</string>
+    <key>CFBundleVersion</key><string>7</string>
+    <key>CFBundleShortVersionString</key><string>0.1.6</string>
     <key>CFBundleExecutable</key><string>GuitarJim</string>
     <key>CFBundleIconFile</key><string>AppIcon.icns</string>
     <key>CFBundlePackageType</key><string>APPL</string>

@@ -32,10 +32,18 @@ public struct PracticeAttempt: Codable, Identifiable, Sendable {
     public var detected: [DetectedAttack]
     public var summary: RhythmSummary
     public var chordFeedback: [ChordFeedback]?
-    public init(startInRecording: Double, startBar: Int, endBar: Int, bpm: Double, expected: [ExpectedAttack], detected: [DetectedAttack], summary: RhythmSummary, chordFeedback: [ChordFeedback]? = nil) {
+    public var recordedDuration: Double?
+    public var replayDuration: Double {
+        guard bpm.isFinite, bpm > 0, endBar > startBar else { return 0 }
+        let passage = Double(endBar - startBar) * 4 * 60 / bpm
+        guard let recordedDuration, recordedDuration.isFinite else { return passage }
+        return min(passage, max(0, recordedDuration))
+    }
+    public init(startInRecording: Double, startBar: Int, endBar: Int, bpm: Double, expected: [ExpectedAttack], detected: [DetectedAttack], summary: RhythmSummary, chordFeedback: [ChordFeedback]? = nil, recordedDuration: Double? = nil) {
         self.startInRecording = startInRecording; self.startBar = startBar; self.endBar = endBar
         self.bpm = bpm; self.expected = expected; self.detected = detected; self.summary = summary
         self.chordFeedback = chordFeedback
+        self.recordedDuration = recordedDuration
     }
 }
 
