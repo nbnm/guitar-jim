@@ -1,0 +1,15 @@
+.build/
+.swiftpm/
+.DS_Store
+build/
+.env
+.env.*
+!.env.example
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.log
+# Local practice recordings and exports are never source assets.
+*.caf
+*.wav
+*.m4a

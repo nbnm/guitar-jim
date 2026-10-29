@@ -1,0 +1,17 @@
+#!/bin/zsh
+set -euo pipefail
+task_root="${0:A:h:h}"
+cd "$task_root"
+configuration="${1:-debug}"
+swift build -c "$configuration"
+binary_dir="$(swift build -c "$configuration" --show-bin-path)"
+app_dir="$task_root/build/Guitar Jim.app"
+mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
+cp "$binary_dir/GuitarJim" "$app_dir/Contents/MacOS/GuitarJim"
+cp "$task_root/Scripts/Info.plist" "$app_dir/Contents/Info.plist"
+cp "$task_root/Assets/AppIcon.icns" "$app_dir/Contents/Resources/AppIcon.icns"
+cp -R "$binary_dir/GuitarJim_GuitarPractice.bundle" "$app_dir/Contents/Resources/"
+codesign --force --sign - "$app_dir"
+touch "$app_dir"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app_dir"
+print "Built $app_dir"

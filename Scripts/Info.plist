@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleName</key><string>Guitar Jim</string>
+    <key>CFBundleDisplayName</key><string>Guitar Jim</string>
+    <key>CFBundleIdentifier</key><string>com.guitarjim.practice</string>
+    <key>CFBundleVersion</key><string>6</string>
+    <key>CFBundleShortVersionString</key><string>0.1.5</string>
+    <key>CFBundleExecutable</key><string>GuitarJim</string>
+    <key>CFBundleIconFile</key><string>AppIcon.icns</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSMicrophoneUsageDescription</key><string>Guitar Jim records your guitar locally for practice feedback and replay. Every microphone-active interval is saved on this Mac.</string>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+</dict></plist>
